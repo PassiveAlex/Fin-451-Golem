@@ -1,0 +1,39 @@
+/* ── fin452golem: Energy Risk Dashboard styles ─────────────────────────── */
+
+/* Consistent plotly chart container */
+.plotly-chart { min-height: 380px; }
+
+/* Value box overrides */
+.value-box-showcase .bi { font-size: 2rem; }
+
+/* Sidebar panel spacing */
+.sidebar-inputs .form-group { margin-bottom: 0.75rem; }
+
+/* Regime badges */
+.badge-steep-back  { background-color: #1a7340; color: #fff; }
+.badge-mild-back   { background-color: #52a36b; color: #fff; }
+.badge-flat        { background-color: #adb5bd; color: #212529; }
+.badge-mild-cont   { background-color: #e07b39; color: #fff; }
+.badge-steep-cont  { background-color: #c0392b; color: #fff; }
+
+/* Market process: production chain monospace blocks */
+.prod-chain {
+  font-family: "Fira Code", monospace;
+  font-size: 0.78rem;
+  white-space: pre;
+  overflow-x: auto;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 1rem;
+  line-height: 1.5;
+}
+
+/* Contract specs table */
+.contract-specs th { background-color: #1f77b4; color: #fff; }
+
+/* Tab nav tighter padding */
+.nav-pills .nav-link { padding: 0.35rem 0.75rem; font-size: 0.875rem; }
+
+/* Full-width card content */
+.card-body { padding: 0.75rem; }

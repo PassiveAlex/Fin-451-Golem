@@ -1,0 +1,40 @@
+Package: fin452golem
+Title: Energy Commodity Risk Management Dashboard
+Version: 0.0.0.9000
+Authors@R:
+    person("Alex", "Hirtle", role = c("aut", "cre"),
+           email = "alex@example.com")
+Description: A Golem-based Shiny dashboard for senior energy commodity risk managers.
+    Covers WTI (CL, HTT), Brent (BRN), Heating Oil (HO), RBOB Gasoline, and Natural Gas (NG)
+    futures markets traded on the CME. Features forward curve analysis, volatility analytics,
+    co-dynamics, seasonality, and hedge ratio tracking.
+License: MIT
+Imports:
+    golem,
+    shiny (>= 1.8.0),
+    bslib (>= 0.6.0),
+    bsicons,
+    plotly,
+    dplyr,
+    tidyr,
+    lubridate,
+    slider,
+    zoo,
+    TTR,
+    scales,
+    forcats,
+    glue,
+    purrr,
+    DT,
+    RTL,
+    tidyquant,
+    config (>= 0.3.2),
+    htmltools,
+    shinyjs
+Suggests:
+    roll,
+    PerformanceAnalytics,
+    DiagrammeR,
+    testthat (>= 3.0.0)
+Encoding: UTF-8
+RoxygenNote: 7.3.0

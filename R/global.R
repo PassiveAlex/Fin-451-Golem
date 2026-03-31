@@ -1,0 +1,50 @@
+library(shiny)
+library(bslib)
+library(plotly)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(slider)
+library(zoo)
+library(TTR)
+library(scales)
+library(forcats)
+library(glue)
+library(purrr)
+library(DT)
+library(RTL)
+library(shinyjs)
+
+# ── Market metadata ──────────────────────────────────────────────────────────
+# rtl_prefix: the ticker prefix used in RTL::dflong series names
+# unit:        price unit for display
+# bbl_factor:  multiplier to convert native unit to $/bbl equivalent
+#              (42 gal/bbl for HO and RBOB; 1 for crude; MMBtu/bbl ~5.8 for NG)
+MARKETS <- list(
+  CL   = list(label = "WTI Cushing",    rtl_prefix = "CL",  unit = "$/bbl",   color = "#1f77b4", bbl_factor = 1,    max_contracts = 36L, enabled = TRUE),
+  BRN  = list(label = "Brent Crude",    rtl_prefix = "BRN", unit = "$/bbl",   color = "#ff7f0e", bbl_factor = 1,    max_contracts = 36L, enabled = TRUE),
+  HTT  = list(label = "WTI Houston",    rtl_prefix = "HTT", unit = "$/bbl",   color = "#2ca02c", bbl_factor = 1,    max_contracts = 12L, enabled = TRUE),
+  HO   = list(label = "Heating Oil",    rtl_prefix = "HO",  unit = "$/gal",   color = "#d62728", bbl_factor = 42,   max_contracts = 18L, enabled = TRUE),
+  RBOB = list(label = "RBOB Gasoline",  rtl_prefix = "RB",  unit = "$/gal",   color = "#9467bd", bbl_factor = 42,   max_contracts = 18L, enabled = TRUE),
+  NG   = list(label = "Natural Gas",    rtl_prefix = "NG",  unit = "$/mmBtu", color = "#8c564b", bbl_factor = 5.8,  max_contracts = 36L, enabled = TRUE)
+)
+
+ENABLED_MARKETS <- names(Filter(function(m) m$enabled, MARKETS))
+
+# Curve shape classification thresholds ($/bbl equivalent)
+CURVE_THRESHOLDS <- c(steep_back = 3, mild_back = 0.5, mild_cont = -0.5, steep_cont = -3)
+
+# Default rolling window (trading days)
+DEFAULT_WINDOW <- 63L
+
+# Vol annualisation factor
+TRADING_DAYS <- 252L
+
+# App theme
+APP_THEME <- bslib::bs_theme(
+  bootswatch  = "flatly",
+  primary     = "#1f77b4",
+  base_font   = bslib::font_google("Inter"),
+  code_font   = bslib::font_google("Fira Code"),
+  `enable-shadows` = TRUE
+)
