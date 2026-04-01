@@ -39,6 +39,10 @@ mod_forward_curve_ui <- function(id) {
         plotly::plotlyOutput(ns("curve_snapshot"), height = "420px")
       ),
       bslib::nav_panel(
+        "Curve History (Fan)",
+        plotly::plotlyOutput(ns("fwd_fan"), height = "500px")
+      ),
+      bslib::nav_panel(
         "Regime History",
         plotly::plotlyOutput(ns("regime_history"), height = "420px")
       ),
@@ -170,6 +174,111 @@ mod_forward_curve_server <- function(id, mkt_data) {
         )
     })
 
+    # ── Curve History (Fan) ───────────────────────────────────────────────────
+    # Plots the C1 spot price over time as the main spine, then draws forward
+    # curves at sampled dates as semi-transparent "ribs" branching off the
+    # spine. Each rib anchors C1 at the snapshot date and plots C2–C12 at
+    # their approximate delivery dates (snapshot_date + (N-1) months).
+    output$fwd_fan <- plotly::renderPlotly({
+      w   <- wide()
+      pfx <- prefix()
+      u   <- unit()
+      req(w, nrow(w) > 50L)
+
+      c1_col <- paste0(pfx, "_C1")
+      req(c1_col %in% names(w))
+
+      # C1 price time series — the main spine of the chart
+      c1_ts <- dplyr::select(w, date, c1 = dplyr::all_of(c1_col)) |>
+        dplyr::filter(!is.na(c1))
+      req(nrow(c1_ts) > 2L)
+
+      # Adaptive sampling: at most 30 ribs regardless of date range
+      step       <- max(63L, nrow(c1_ts) %/% 30L)
+      sample_idx <- seq(1L, nrow(c1_ts), by = step)
+      # Always include the most recent date
+      if (utils::tail(sample_idx, 1L) != nrow(c1_ts)) {
+        sample_idx <- c(sample_idx, nrow(c1_ts))
+      }
+      sampled_dates <- c1_ts$date[sample_idx]
+
+      # Build forward curve snapshots at each sampled date.
+      # Delivery date for contract N at snapshot date d: d + (N-1) * ~30.44 days.
+      fan_df <- purrr::map_dfr(sampled_dates, function(d) {
+        snap <- build_curve_snapshot(w, pfx, d, max_c = 12L)
+        if (is.null(snap) || nrow(snap) == 0L) return(NULL)
+        dplyr::mutate(snap,
+          snap_date     = d,
+          delivery_date = d + lubridate::days(as.integer(round((contract - 1L) * 30.44)))
+        )
+      })
+      req(!is.null(fan_df), nrow(fan_df) > 0L)
+
+      mkt_color <- MARKETS[[sel$market()]]$color
+
+      # Convert hex color to rgba for semi-transparent historical ribs
+      hex <- sub("^#", "", mkt_color)
+      r   <- strtoi(substr(hex, 1L, 2L), 16L)
+      g   <- strtoi(substr(hex, 3L, 4L), 16L)
+      b   <- strtoi(substr(hex, 5L, 6L), 16L)
+      rib_rgba <- sprintf("rgba(%d,%d,%d,0.18)", r, g, b)
+
+      # Historical ribs combined into one trace with NA row breaks between curves
+      hist_dates <- sampled_dates[-length(sampled_dates)]
+      rib_rows   <- purrr::map_dfr(hist_dates, function(d) {
+        seg <- dplyr::filter(fan_df, snap_date == d, !is.na(price)) |>
+          dplyr::arrange(contract)
+        if (nrow(seg) < 2L) return(NULL)
+        dplyr::bind_rows(
+          dplyr::select(seg, delivery_date, price),
+          data.frame(delivery_date = as.Date(NA), price = NA_real_)
+        )
+      })
+
+      # Most recent rib — highlighted in full market color
+      latest_date  <- max(sampled_dates)
+      latest_curve <- dplyr::filter(fan_df, snap_date == latest_date, !is.na(price)) |>
+        dplyr::arrange(contract)
+
+      mkt_label <- MARKETS[[sel$market()]]$label
+
+      p <- plotly::plot_ly() |>
+        plotly::add_lines(
+          data = c1_ts, x = ~date, y = ~c1,
+          name = paste0(pfx, "01 (front month)"),
+          line = list(color = mkt_color, width = 2),
+          hovertemplate = "%{x|%Y-%m-%d}: %{y:.2f}<extra></extra>"
+        )
+
+      if (!is.null(rib_rows) && nrow(rib_rows) > 0L) {
+        p <- plotly::add_lines(p,
+          data        = rib_rows, x = ~delivery_date, y = ~price,
+          name        = "Forward curves (sampled)",
+          line        = list(color = rib_rgba, width = 1),
+          connectgaps = FALSE,
+          hoverinfo   = "skip"
+        )
+      }
+
+      if (nrow(latest_curve) > 0L) {
+        p <- plotly::add_lines(p,
+          data          = latest_curve, x = ~delivery_date, y = ~price,
+          name          = glue::glue("Forward curve ({format(latest_date, '%b %d, %Y')})"),
+          line          = list(color = mkt_color, width = 2.5, dash = "dash"),
+          customdata    = ~contract,
+          hovertemplate = "C%{customdata}: %{y:.2f}<extra></extra>"
+        )
+      }
+
+      p |>
+        plotly::layout(
+          xaxis     = list(title = "Date / Approximate Delivery Month"),
+          yaxis     = list(title = glue::glue("{u} \u2014 {mkt_label}")),
+          legend    = list(orientation = "h"),
+          hovermode = "x unified"
+        )
+    }) |> bindEvent(wide())
+
     # ── Roll Yield ─────────────────────────────────────────────────────────────
     output$roll_yield_plot <- plotly::renderPlotly({
       ry <- compute_roll_yield(wide(), prefix())
@@ -179,15 +288,11 @@ mod_forward_curve_server <- function(id, mkt_data) {
         line = list(color = MARKETS[[sel$market()]]$color, width = 1.5),
         hovertemplate = "%{x|%Y-%m-%d}: %{y:.1%}<extra></extra>"
       ) |>
-        plotly::add_lines(
-          y    = ~0, line = list(color = "#adb5bd", dash = "dot", width = 1),
-          showlegend = FALSE, hoverinfo = "skip"
-        ) |>
         plotly::layout(
-          xaxis = list(title = ""),
-          yaxis = list(title = "Annualised roll yield (C1→C2)", tickformat = ".1%"),
+          xaxis  = list(title = ""),
+          yaxis  = list(title = "Annualised roll yield (C1\u2192C2)", tickformat = ".1%"),
           shapes = list(list(
-            type = "line", x0 = min(ry$date), x1 = max(ry$date),
+            type = "line", xref = "paper", x0 = 0, x1 = 1,
             y0 = 0, y1 = 0,
             line = list(color = "#adb5bd", dash = "dot", width = 1)
           ))

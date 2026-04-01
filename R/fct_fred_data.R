@@ -43,11 +43,30 @@
 #' }
 fetch_fred_zero_curve <- function(from = "2000-01-01",
                                    tickers = .FRED_TICKERS) {
+  empty_panel <- data.frame(date     = as.Date(character(0)),
+                             maturity = numeric(0),
+                             yield    = numeric(0))
+
   raw <- tidyquant::tq_get(
     names(tickers),
     get  = "economic.data",
     from = from
   )
+
+  # Guard: tq_get returns NULL or an empty/malformed frame on network failure
+  if (is.null(raw) || !is.data.frame(raw) || nrow(raw) == 0L) {
+    return(empty_panel)
+  }
+
+  # Normalize column name: some tidyquant / quantmod versions return "value"
+  # instead of "price" for FRED economic data.
+  if (!"price" %in% names(raw) && "value" %in% names(raw)) {
+    raw <- dplyr::rename(raw, price = value)
+  }
+  if (!"price" %in% names(raw)) {
+    stop("tq_get did not return a recognised price column. Got: ",
+         paste(names(raw), collapse = ", "))
+  }
 
   maturity_map <- data.frame(
     symbol   = names(tickers),

@@ -42,14 +42,16 @@ ols_hedge_ratio <- function(x_ret, y_ret, window = 63L) {
 #' Analytical minimum-variance hedge ratio
 #'
 #' h* = rho * (sigma_S / sigma_F)
-#' where S = spot/exposure, F = futures/hedge.
+#' where S = spot/exposure (x), F = futures/hedge instrument (y).
+#' Represents the number of futures contracts per unit of spot exposure
+#' that minimises the variance of the hedged position.
 #'
-#' @param sigma_x numeric — volatility of exposure
-#' @param sigma_y numeric — volatility of hedge
+#' @param sigma_x numeric — volatility of exposure (S)
+#' @param sigma_y numeric — volatility of hedge instrument (F)
 #' @param rho     numeric — correlation between x and y
 #' @return numeric scalar
 min_variance_hedge_ratio <- function(sigma_x, sigma_y, rho) {
-  rho * (sigma_y / sigma_x)
+  rho * (sigma_x / sigma_y)
 }
 
 #' Hedge ratio term structure: hedge C1 exposure using C2…Cn

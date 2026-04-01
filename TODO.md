@@ -471,15 +471,15 @@ Each module's server function signature: `function(id, prices, returns, stress =
 - [x] `golem::create_golem()` scaffolding, `DESCRIPTION`, `bslib` theme in `app_ui.R`
 - [x] `global.R`: `MARKETS` list, shared constants, all package imports
 - [x] `fct_data_loader.R`: load `RTL::dflong`, parse `{TICKER}{NN}` series, reshape wide/long, compute log returns
-- [x] `mod_market_selector.R`: all inputs defined; non-CL markets disabled (enabled=FALSE in MARKETS list)
-- [x] `fct_forward_curve.R` + `mod_forward_curve.R`: snapshot, regime classifier, regime history, roll yield
+- [x] `mod_market_selector.R`: all inputs defined; all 6 markets enabled
+- [x] `fct_forward_curve.R` + `mod_forward_curve.R`: snapshot, regime classifier, regime history, roll yield, forward curve fan chart (C1 over time + sampled forward curves)
 - [x] `fct_volatility.R` + `mod_volatility.R`: vol term structure, vol cone, EWMA, regime shading
 - [x] `fct_seasonality.R` + `mod_seasonality.R`: monthly returns, seasonal index, STL, YoY overlay
 - [x] `fct_hedge_ratios.R` + `mod_hedge_ratios.R`: rolling OLS, effectiveness, term structure, basis risk
-- [x] `fct_fred_data.R`: `build_zero_curve_spline`, `interpolate_zero_yield`, `discount_factors`, `get_date_spline`, `interpolated_term_structure`, `forward_rates`, `par_yield`
-- [x] `mod_yield_curve.R`: accepts user-provided zero curve reactive; zero curve chart, forward rates overlay, 2s10s spread
+- [x] `fct_fred_data.R`: `build_zero_curve_spline`, `interpolate_zero_yield`, `discount_factors`, `get_date_spline`, `interpolated_term_structure`, `forward_rates`, `par_yield`; bug fix: robustness to `tq_get` returning NULL or wrong column names
+- [x] `mod_yield_curve.R`: zero curve chart, forward rates overlay, 2s10s spread
 - [x] `mod_market_process.R`: CL production chain, all 6 market contract specs, market dynamics notes
-- [x] `app_ui.R`: `page_navbar` — Market Process, Forward Curve, Volatility, Seasonality, Hedge Ratios, Yield Curve; Correlation stub
+- [x] `app_ui.R`: `page_navbar` — Market Process, Forward Curve, Volatility, Seasonality, Hedge Ratios, Yield Curve, Correlation
 - [x] `app_server.R`: reactive data load via `build_market_data()`, `zero_curve_panel` reactiveVal, all modules wired
 - [ ] `tests/testthat/`: `testthat` unit tests for all `fct_*.R` functions using CL data
 
@@ -489,12 +489,12 @@ Each module's server function signature: `function(id, prices, returns, stress =
 
 ### Stage 2: BRN (Brent Crude) — Location Spread Introduction
 
-- [ ] Enable BRN in `mod_market_selector.R`; validate BRN columns in `fct_data_loader.R`
+- [x] Enable BRN in `global.R` (`enabled = TRUE`); columns validated via `fct_data_loader.R` pattern match
 - [ ] Multi-market forward curve: `mod_forward_curve.R` accepts a vector of markets; market-specific colors from `MARKETS` list
 - [ ] Multi-market vol: CL and BRN vol time series on the same chart with market toggle
-- [ ] **First build of `fct_correlation.R` + `mod_correlation.R`**: rolling correlation heatmap (2×2), CL-BRN spread time series, spread z-score, CCF; written to accept N markets from the start
+- [x] **`mod_correlation.R`**: rolling correlation heatmap (N×N), pairwise rolling correlation, spread time series, spread z-score; all markets; note: correlation logic is inline in the module rather than split into a separate `fct_correlation.R`; bug fix: spread column lookup now uses correct `{PREFIX}_C1` naming
 - [ ] Cross-market hedge ratio section in `mod_hedge_ratios.R`: rolling CL/BRN beta and effectiveness
-- [ ] Activate Correlation tab in `app_ui.R`
+- [x] Correlation tab activated in `app_ui.R` and wired in `app_server.R`
 
 **Deliverable:** Two-market dashboard. CL-BRN differential is the primary new analytical object.
 
@@ -502,22 +502,22 @@ Each module's server function signature: `function(id, prices, returns, stress =
 
 ### Stage 3: HTT (WTI Houston) — Pipeline Basis
 
-- [ ] Enable HTT; validate HTT columns
+- [x] Enable HTT in `global.R`; columns validated
 - [ ] Three-way curve comparison with "spread mode" toggle (y-axis switches to spread vs. CL)
-- [ ] CL-HTT basis sub-panel in `mod_correlation.R`: historical distribution and z-score; dedicated panel given its importance to physical traders
-- [ ] 3×3 correlation matrix
-- [ ] HTT seasonality activated in `mod_seasonality.R`
+- [ ] CL-HTT basis sub-panel in `mod_correlation.R`: dedicated panel with historical distribution and z-score
+- [x] N×N correlation heatmap active (all enabled markets)
+- [x] HTT available in market selector for seasonality, volatility, hedge ratio tabs
 
 **Deliverable:** Three crude markets. Fundamental crude basis relationships visible.
 
 ---
 
 ### Stage 4: HO + RBOB — Crack Spread Analysis
-> Unit conversion introduced here. HO and RBOB are in $/gal; all spread calculations involving crude require ×42. The `compute_spread` function's `unit_adjust` parameter handles this.
+> Unit conversion introduced here. HO and RBOB are in $/gal; all spread calculations involving crude require ×42. The `bbl_factor` field in `MARKETS` handles this in `spread_prices()`.
 
-- [ ] Enable HO and RBOB; validate columns; register $/gal unit in `MARKETS`
+- [x] Enable HO and RBOB in `global.R`; $/gal unit registered; `bbl_factor = 42` set
 - [ ] Unit-aware forward curve: toggle for native units vs. barrel-equivalent (default: barrel-equivalent)
-- [ ] Crack spread suite in `mod_correlation.R`: HO 1-1 crack, RBOB 1-1 crack, 3-2-1 crack, crack spread term structure, crack spread z-score
+- [ ] Crack spread suite in `mod_correlation.R`: dedicated HO crack, RBOB crack, 3-2-1 crack panels with seasonal norm overlaid — current spread/zscore tabs support any pair but lack dedicated crack UI
 - [ ] Crack seasonality sub-panel: RBOB crack is strongly seasonal (spring driving season)
 - [ ] Hedge ratio for refinery margin position in `mod_hedge_ratios.R`
 
@@ -528,7 +528,7 @@ Each module's server function signature: `function(id, prices, returns, stress =
 ### Stage 5: NG — Natural Gas Unique Dynamics
 > NG has materially different dynamics: highest vol, strongest seasonality, camel-hump curve shape, different spread logic. Do not treat it as just another commodity.
 
-- [ ] Enable NG; validate columns; register $/mmBtu unit in `MARKETS`
+- [x] Enable NG in `global.R`; $/mmBtu unit registered; `bbl_factor = 5.8` set
 - [ ] NG-specific forward curve features: "seasonal shape" overlay highlighting winter premium; summer-winter spread metric (C1 vs. C7 during summer) replacing the simple slope metric
 - [ ] NG seasonality sub-panel: strongest seasonal signal of all six markets; STL seasonal component will be prominent
 - [ ] Vol spike detection in `mod_volatility.R`: flag days where 5-day realized vol exceeds trailing 1-year 95th percentile; mark as points on the vol chart

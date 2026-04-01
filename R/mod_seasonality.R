@@ -103,7 +103,7 @@ mod_seasonality_server <- function(id, mkt_data) {
       yoy_df <- yoy_normalized(wide(), prefix(), input$contract_n)
       req(yoy_df)
 
-# Colour scale: grey for older years, accent for most recent
+      # Colour scale: grey for older years, market accent for most recent
       years  <- sort(unique(yoy_df$year))
       n_yrs  <- length(years)
       colors <- colorRampPalette(c("#d0d0d0", MARKETS[[sel$market()]]$color))(n_yrs)
