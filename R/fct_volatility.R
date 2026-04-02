@@ -13,14 +13,14 @@ compute_log_returns <- function(wide_df, prefix, contract_ns = c(1L, 3L, 6L, 12L
   present <- intersect(cols, names(wide_df))
   if (length(present) == 0L) return(data.frame(date = wide_df$date))
 
-  wide_df |>
-    dplyr::select(date, dplyr::all_of(present)) |>
-    dplyr::arrange(date) |>
+  wide_df %>%
+    dplyr::select(date, dplyr::all_of(present)) %>%
+    dplyr::arrange(date) %>%
     dplyr::mutate(dplyr::across(
       -date,
       ~ log(.x / dplyr::lag(.x)),
       .names = "ret_{.col}"
-    )) |>
+    )) %>%
     dplyr::select(date, dplyr::starts_with("ret_"))
 }
 
@@ -100,7 +100,7 @@ vol_term_structure_snapshot <- function(wide_df, prefix, date_val,
   data.frame(
     contract = as.integer(sub(paste0(prefix, "_C"), "", present)),
     vol      = vols
-  ) |> dplyr::filter(!is.na(vol))
+  ) %>% dplyr::filter(!is.na(vol))
 }
 
 #' Rolling volatility for multiple contracts over time

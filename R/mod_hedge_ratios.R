@@ -30,15 +30,15 @@ mod_hedge_ratios_ui <- function(id) {
     bslib::navset_card_pill(
       bslib::nav_panel(
         "Rolling Hedge Ratio",
-        plotly::plotlyOutput(ns("rolling_hr"), height = "420px")
+        plotly::plotlyOutput(ns("rolling_hr"), height = "70%", width = "100%")
       ),
       bslib::nav_panel(
         "Term Structure",
-        plotly::plotlyOutput(ns("hr_ts"), height = "420px")
+        plotly::plotlyOutput(ns("hr_ts"), height = "70%", width = "100%")
       ),
       bslib::nav_panel(
         "Basis Risk",
-        plotly::plotlyOutput(ns("basis_risk"), height = "420px")
+        plotly::plotlyOutput(ns("basis_risk"), height = "70%", width = "100%")
       )
     )
   )
@@ -53,7 +53,7 @@ mod_hedge_ratios_server <- function(id, mkt_data) {
       req(m, mkt_data()[[m]])
       filter_date_range(mkt_data()[[m]]$wide,
                         sel$date_from(), sel$date_to())
-    }) |> bindEvent(sel$market(), sel$date_from(), sel$date_to())
+    }) %>% bindEvent(sel$market(), sel$date_from(), sel$date_to())
 
     prefix <- reactive(MARKETS[[sel$market()]]$rtl_prefix)
 
@@ -62,7 +62,7 @@ mod_hedge_ratios_server <- function(id, mkt_data) {
       rolling_hedge_ratio_series(
         wide(), prefix(), input$exp_c, input$hedge_c, window = sel$window()
       )
-    }) |> bindEvent(wide(), input$exp_c, input$hedge_c, sel$window())
+    }) %>% bindEvent(wide(), input$exp_c, input$hedge_c, sel$window())
 
     output$beta_label <- renderText({
       hr <- hr_series()
@@ -83,22 +83,22 @@ mod_hedge_ratios_server <- function(id, mkt_data) {
       hr <- hr_series()
       req(hr)
 
-      plotly::plot_ly(hr, x = ~date) |>
+      plotly::plot_ly(hr, x = ~date) %>%
         plotly::add_ribbons(
           ymin = ~ci_lower, ymax = ~ci_upper,
           name = "95% CI",
           fillcolor = paste0(MARKETS[[sel$market()]]$color, "33"),
           line = list(width = 0)
-        ) |>
+        ) %>%
         plotly::add_lines(
           y = ~beta, name = "Beta (hedge ratio)",
           line = list(color = MARKETS[[sel$market()]]$color, width = 2),
           hovertemplate = "%{x|%Y-%m-%d}: %{y:.3f}<extra></extra>"
-        ) |>
+        ) %>%
         plotly::add_lines(
           y = ~1, line = list(color = "#adb5bd", dash = "dot", width = 1),
           showlegend = FALSE, hoverinfo = "skip"
-        ) |>
+        ) %>%
         plotly::layout(
           xaxis = list(title = ""),
           yaxis = list(title = glue::glue("C{input$exp_c}/C{input$hedge_c} Hedge Ratio")),
@@ -113,18 +113,18 @@ mod_hedge_ratios_server <- function(id, mkt_data) {
                                           window     = sel$window())
       req(hrts)
 
-      plotly::plot_ly(hrts, x = ~contract) |>
+      plotly::plot_ly(hrts, x = ~contract) %>%
         plotly::add_bars(
           y = ~r_squared, name = "R² (effectiveness)",
           marker = list(color = "#adb5bd"),
           yaxis = "y2",
           hovertemplate = "C%{x} R²: %{y:.2f}<extra></extra>"
-        ) |>
+        ) %>%
         plotly::add_lines(
           y = ~beta, name = "Hedge ratio (beta)",
           line = list(color = MARKETS[[sel$market()]]$color, width = 2.5),
           hovertemplate = "C%{x} beta: %{y:.3f}<extra></extra>"
-        ) |>
+        ) %>%
         plotly::layout(
           xaxis  = list(title = "Hedge contract", dtick = 1),
           yaxis  = list(title = "Hedge ratio (beta)"),
@@ -132,7 +132,7 @@ mod_hedge_ratios_server <- function(id, mkt_data) {
                         range = c(0, 1)),
           legend = list(orientation = "h")
         )
-    }) |> bindEvent(wide(), input$exp_c, sel$window())
+    }) %>% bindEvent(wide(), input$exp_c, sel$window())
 
     # ── Basis Risk ────────────────────────────────────────────────────────────
     output$basis_risk <- plotly::renderPlotly({
@@ -159,17 +159,17 @@ mod_hedge_ratios_server <- function(id, mkt_data) {
         date   = wide()$date,
         basis  = rolling_realized_vol(hedged_ret_series, window = sel$window()),
         total  = rolling_realized_vol(y_ret, window = sel$window())
-      ) |> dplyr::filter(!is.na(basis))
+      ) %>% dplyr::filter(!is.na(basis))
 
-      plotly::plot_ly(basis_df, x = ~date) |>
+      plotly::plot_ly(basis_df, x = ~date) %>%
         plotly::add_lines(y = ~total, name = "Unhedged vol",
           line = list(color = "#c0392b", width = 1.5),
           hovertemplate = "%{x|%Y-%m-%d}: %{y:.1%}<extra></extra>"
-        ) |>
+        ) %>%
         plotly::add_lines(y = ~basis, name = "Hedged (basis) vol",
           line = list(color = MARKETS[[sel$market()]]$color, width = 1.5),
           hovertemplate = "%{x|%Y-%m-%d}: %{y:.1%}<extra></extra>"
-        ) |>
+        ) %>%
         plotly::layout(
           xaxis = list(title = ""),
           yaxis = list(title = "Annualised vol", tickformat = ".0%"),
@@ -180,6 +180,6 @@ mod_hedge_ratios_server <- function(id, mkt_data) {
             showarrow = FALSE, font = list(size = 12)
           ))
         )
-    }) |> bindEvent(wide(), hr_series(), input$exp_c, input$hedge_c, sel$window())
+    }) %>% bindEvent(wide(), hr_series(), input$exp_c, input$hedge_c, sel$window())
   })
 }

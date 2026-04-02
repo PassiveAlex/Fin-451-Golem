@@ -12,19 +12,19 @@ compute_monthly_returns <- function(wide_df, prefix, contract_n = 1L) {
   col <- paste0(prefix, "_C", contract_n)
   if (!col %in% names(wide_df)) return(NULL)
 
-  wide_df |>
-    dplyr::select(date, price = dplyr::all_of(col)) |>
-    dplyr::filter(!is.na(price)) |>
-    dplyr::arrange(date) |>
+  wide_df %>%
+    dplyr::select(date, price = dplyr::all_of(col)) %>%
+    dplyr::filter(!is.na(price)) %>%
+    dplyr::arrange(date) %>%
     dplyr::mutate(
       year      = lubridate::year(date),
       month_num = lubridate::month(date),
       month     = lubridate::month(date, label = TRUE, abbr = TRUE),
       month     = forcats::fct_inorder(as.character(month)),
       ret       = log(price / dplyr::lag(price))
-    ) |>
-    dplyr::filter(!is.na(ret)) |>
-    dplyr::group_by(year, month_num, month) |>
+    ) %>%
+    dplyr::filter(!is.na(ret)) %>%
+    dplyr::group_by(year, month_num, month) %>%
     dplyr::summarise(monthly_ret = sum(ret, na.rm = TRUE), .groups = "drop")
 }
 
@@ -42,26 +42,26 @@ seasonal_index <- function(wide_df, prefix, contract_n = 1L) {
   col <- paste0(prefix, "_C", contract_n)
   if (!col %in% names(wide_df)) return(NULL)
 
-  wide_df |>
-    dplyr::select(date, price = dplyr::all_of(col)) |>
-    dplyr::filter(!is.na(price)) |>
-    dplyr::arrange(date) |>
+  wide_df %>%
+    dplyr::select(date, price = dplyr::all_of(col)) %>%
+    dplyr::filter(!is.na(price)) %>%
+    dplyr::arrange(date) %>%
     dplyr::mutate(
       month_num = lubridate::month(date),
       # 252-day centred rolling mean (≈ 1 trading year)
       ma = zoo::rollapply(price, width = 252L, FUN = mean,
                           fill = NA, align = "center", na.rm = TRUE)
-    ) |>
-    dplyr::filter(!is.na(ma)) |>
-    dplyr::mutate(ratio = price / ma) |>
-    dplyr::group_by(month_num) |>
+    ) %>%
+    dplyr::filter(!is.na(ma)) %>%
+    dplyr::mutate(ratio = price / ma) %>%
+    dplyr::group_by(month_num) %>%
     dplyr::summarise(
-      month          = lubridate::month(month_num[1], label = TRUE, abbr = TRUE) |> as.character(),
+      month          = lubridate::month(month_num[1], label = TRUE, abbr = TRUE) %>% as.character(),
       seasonal_index = mean(ratio, na.rm = TRUE),
       lower          = stats::quantile(ratio, 0.25, na.rm = TRUE),
       upper          = stats::quantile(ratio, 0.75, na.rm = TRUE),
       .groups        = "drop"
-    ) |>
+    ) %>%
     dplyr::arrange(month_num)
 }
 
@@ -79,20 +79,20 @@ stl_decompose <- function(wide_df, prefix, contract_n = 1L, s_window = "periodic
   col <- paste0(prefix, "_C", contract_n)
   if (!col %in% names(wide_df)) return(NULL)
 
-  monthly <- wide_df |>
-    dplyr::select(date, price = dplyr::all_of(col)) |>
-    dplyr::filter(!is.na(price)) |>
-    dplyr::arrange(date) |>
+  monthly <- wide_df %>%
+    dplyr::select(date, price = dplyr::all_of(col)) %>%
+    dplyr::filter(!is.na(price)) %>%
+    dplyr::arrange(date) %>%
     dplyr::mutate(
       yr  = lubridate::year(date),
       mo  = lubridate::month(date)
-    ) |>
-    dplyr::group_by(yr, mo) |>
+    ) %>%
+    dplyr::group_by(yr, mo) %>%
     dplyr::summarise(
       month_end = max(date),
       price     = mean(price, na.rm = TRUE),
       .groups   = "drop"
-    ) |>
+    ) %>%
     dplyr::arrange(yr, mo)
 
   if (nrow(monthly) < 24L) return(NULL)  # need >= 2 full years
@@ -130,19 +130,19 @@ yoy_normalized <- function(wide_df, prefix, contract_n = 1L) {
   col <- paste0(prefix, "_C", contract_n)
   if (!col %in% names(wide_df)) return(NULL)
 
-  wide_df |>
-    dplyr::select(date, price = dplyr::all_of(col)) |>
-    dplyr::filter(!is.na(price)) |>
-    dplyr::arrange(date) |>
+  wide_df %>%
+    dplyr::select(date, price = dplyr::all_of(col)) %>%
+    dplyr::filter(!is.na(price)) %>%
+    dplyr::arrange(date) %>%
     dplyr::mutate(
       year        = lubridate::year(date),
       day_of_year = lubridate::yday(date)
-    ) |>
-    dplyr::group_by(year) |>
+    ) %>%
+    dplyr::group_by(year) %>%
     dplyr::mutate(
       base       = dplyr::first(price[!is.na(price)]),
       normalized = price / base * 100
-    ) |>
+    ) %>%
     dplyr::ungroup()
 }
 
@@ -165,6 +165,6 @@ seasonal_vol <- function(wide_df, prefix, contract_n = 1L, window = 21L) {
     vol       = vol,
     month_num = lubridate::month(wide_df$date),
     month     = lubridate::month(wide_df$date, label = TRUE, abbr = TRUE)
-  ) |>
+  ) %>%
     dplyr::filter(!is.na(vol))
 }

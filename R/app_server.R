@@ -11,19 +11,32 @@
 app_server <- function(input, output, session) {
 
   # ── 1. Load and cache commodity data ───────────────────────────────────────
-  # build_market_data() reads RTL::dflong for the given market prefix and
-  # returns list($long, $wide, $ret_wide). Computed once at startup.
-  mkt_data <- shiny::reactiveVal(
-    purrr::map(
+  # CL is built first because BRN and HTT are differentials relative to WTI.
+  # Its wide price table is passed into those builds so adjust_differential()
+  # can reconstruct true prices before log returns are computed.
+  # All other markets build independently. Computed once at startup.
+  mkt_data <- shiny::reactiveVal({
+    cl_data <- build_market_data(
+      prefix        = MARKETS[["CL"]]$rtl_prefix,
+      max_contracts = MARKETS[["CL"]]$max_contracts
+    )
+    cl_wide <- cl_data$wide
+
+    result <- purrr::map(
       stats::setNames(ENABLED_MARKETS, ENABLED_MARKETS),
       function(mkt) {
+        if (mkt == "CL") return(cl_data)
+        m <- MARKETS[[mkt]]
         build_market_data(
-          prefix        = MARKETS[[mkt]]$rtl_prefix,
-          max_contracts = MARKETS[[mkt]]$max_contracts
+          prefix        = m$rtl_prefix,
+          max_contracts = m$max_contracts,
+          base_wide     = if (!is.null(m$base_prefix)) cl_wide else NULL,
+          base_prefix   = m$base_prefix
         )
       }
     )
-  )
+    result
+  })
 
   # ── 2. Fetch FRED zero curve at startup ────────────────────────────────────
   # Runs once when the session starts. Shows a notification while loading.
@@ -52,7 +65,7 @@ app_server <- function(input, output, session) {
         duration = 8
       )
     })
-  }) |> shiny::bindEvent(TRUE, once = TRUE)   # run exactly once at startup
+  }) %>% shiny::bindEvent(TRUE, once = TRUE)   # run exactly once at startup
 
   # ── 3. Wire feature modules ─────────────────────────────────────────────────
   mod_market_process_server("process")

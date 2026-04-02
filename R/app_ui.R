@@ -8,7 +8,7 @@ app_ui <- function() {
       " Energy Risk Dashboard"
     ),
     theme     = APP_THEME,
-    fillable  = FALSE,
+    fillable  = TRUE,
     id        = "main_nav",
 
     # Include custom CSS and shinyjs

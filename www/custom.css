@@ -37,3 +37,35 @@
 
 /* Full-width card content */
 .card-body { padding: 0.75rem; }
+
+/* ── Viewport-filling layout ─────────────────────────────────────────────── */
+
+/* Sidebar layout fills the available page height (~80 % of viewport) */
+.bslib-sidebar-layout {
+  min-height: 82vh;
+}
+
+/* Pass fill down through the bslib card that wraps navset_card_pill */
+.bslib-sidebar-layout .bslib-main .bslib-card {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.bslib-sidebar-layout .bslib-main .bslib-card > .card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-bottom: 0.5rem;
+}
+
+/* Tab-content and active pane must also fill so plotly "70%" resolves correctly */
+.bslib-sidebar-layout .bslib-main .bslib-card > .card-body > .tab-content {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.bslib-sidebar-layout .bslib-main .bslib-card > .card-body > .tab-content > .tab-pane {
+  height: 100%;
+  min-height: 400px; /* fallback so charts never collapse on tiny viewports */
+}

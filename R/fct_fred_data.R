@@ -74,14 +74,14 @@ fetch_fred_zero_curve <- function(from = "2000-01-01",
     stringsAsFactors = FALSE
   )
 
-  raw |>
-    dplyr::inner_join(maturity_map, by = "symbol") |>
-    dplyr::filter(!is.na(price)) |>
+  raw %>%
+    dplyr::inner_join(maturity_map, by = "symbol") %>%
+    dplyr::filter(!is.na(price)) %>%
     dplyr::transmute(
       date     = as.Date(date),
       maturity = maturity,
       yield    = price / 100   # FRED reports percent; convert to decimal
-    ) |>
+    ) %>%
     dplyr::arrange(date, maturity)
 }
 

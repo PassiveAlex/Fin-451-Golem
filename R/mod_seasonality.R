@@ -13,19 +13,19 @@ mod_seasonality_ui <- function(id) {
     bslib::navset_card_pill(
       bslib::nav_panel(
         "Monthly Returns",
-        plotly::plotlyOutput(ns("monthly_box"), height = "420px")
+        plotly::plotlyOutput(ns("monthly_box"), height = "70%", width = "100%")
       ),
       bslib::nav_panel(
         "Seasonal Index",
-        plotly::plotlyOutput(ns("seasonal_idx"), height = "420px")
+        plotly::plotlyOutput(ns("seasonal_idx"), height = "70%", width = "100%")
       ),
       bslib::nav_panel(
         "Year-over-Year",
-        plotly::plotlyOutput(ns("yoy"), height = "420px")
+        plotly::plotlyOutput(ns("yoy"), height = "70%", width = "100%")
       ),
       bslib::nav_panel(
         "STL Decomposition",
-        plotly::plotlyOutput(ns("stl"), height = "520px")
+        plotly::plotlyOutput(ns("stl"), height = "70%", width = "100%")
       )
     )
   )
@@ -40,7 +40,7 @@ mod_seasonality_server <- function(id, mkt_data) {
       req(m, mkt_data()[[m]])
       # Use full history for seasonality — date filter applied internally
       mkt_data()[[m]]$wide
-    }) |> bindEvent(sel$market())
+    }) %>% bindEvent(sel$market())
 
     prefix <- reactive(MARKETS[[sel$market()]]$rtl_prefix)
     unit   <- reactive(MARKETS[[sel$market()]]$unit)
@@ -57,7 +57,7 @@ mod_seasonality_server <- function(id, mkt_data) {
         line       = list(color = MARKETS[[sel$market()]]$color),
         fillcolor  = paste0(MARKETS[[sel$market()]]$color, "44"),
         hovertemplate = "%{x}: %{y:.2%}<extra></extra>"
-      ) |>
+      ) %>%
         plotly::layout(
           xaxis = list(title = "Month", categoryorder = "array",
                        categoryarray = month.abb),
@@ -67,36 +67,36 @@ mod_seasonality_server <- function(id, mkt_data) {
             line = list(color = "#adb5bd", dash = "dot", width = 1)
           ))
         )
-    }) |> bindEvent(wide(), input$contract_n)
+    }) %>% bindEvent(wide(), input$contract_n)
 
     # ── Seasonal index ────────────────────────────────────────────────────────
     output$seasonal_idx <- plotly::renderPlotly({
       si <- seasonal_index(wide(), prefix(), input$contract_n)
       req(si)
 
-      plotly::plot_ly(si, x = ~month_num) |>
+      plotly::plot_ly(si, x = ~month_num) %>%
         plotly::add_ribbons(
           ymin = ~lower, ymax = ~upper,
           name = "IQR (25th–75th)",
           fillcolor = paste0(MARKETS[[sel$market()]]$color, "33"),
           line = list(width = 0)
-        ) |>
+        ) %>%
         plotly::add_lines(
           y = ~seasonal_index, name = "Mean seasonal index",
           line = list(color = MARKETS[[sel$market()]]$color, width = 2.5),
           hovertemplate = "%{x}: %{y:.3f}<extra></extra>"
-        ) |>
+        ) %>%
         plotly::add_lines(
           y = ~1, line = list(color = "#adb5bd", dash = "dot", width = 1),
           showlegend = FALSE, hoverinfo = "skip"
-        ) |>
+        ) %>%
         plotly::layout(
           xaxis = list(title = "Month",
                        ticktext = month.abb, tickvals = 1:12),
           yaxis = list(title = "Seasonal index (1.00 = average)"),
           legend = list(orientation = "h")
         )
-    }) |> bindEvent(wide(), input$contract_n)
+    }) %>% bindEvent(wide(), input$contract_n)
 
     # ── Year-over-year overlay ────────────────────────────────────────────────
     output$yoy <- plotly::renderPlotly({
@@ -120,7 +120,7 @@ mod_seasonality_server <- function(id, mkt_data) {
         )
       }
 
-      p |>
+      p %>%
         plotly::layout(
           xaxis = list(title = "Day of year",
                        ticktext = c("Jan","Feb","Mar","Apr","May","Jun",
@@ -129,7 +129,7 @@ mod_seasonality_server <- function(id, mkt_data) {
           yaxis = list(title = "Normalised price (Jan 1 = 100)"),
           legend = list(orientation = "h")
         )
-    }) |> bindEvent(wide(), input$contract_n)
+    }) %>% bindEvent(wide(), input$contract_n)
 
     # ── STL decomposition ─────────────────────────────────────────────────────
     output$stl <- plotly::renderPlotly({
@@ -141,28 +141,28 @@ mod_seasonality_server <- function(id, mkt_data) {
       p_trend <- plotly::plot_ly(stl_df, x = ~date, y = ~trend,
         type = "scatter", mode = "lines",
         line = list(color = mkt_color, width = 1.5),
-        name = "Trend") |>
+        name = "Trend") %>%
         plotly::layout(yaxis = list(title = "Trend"))
 
       p_seasonal <- plotly::plot_ly(stl_df, x = ~date, y = ~seasonal,
         type = "scatter", mode = "lines",
         line = list(color = "#2ca02c", width = 1.5),
-        name = "Seasonal") |>
+        name = "Seasonal") %>%
         plotly::layout(yaxis = list(title = "Seasonal"))
 
       p_remainder <- plotly::plot_ly(stl_df, x = ~date, y = ~remainder,
         type = "bar",
         marker = list(color = "#adb5bd"),
-        name = "Remainder") |>
+        name = "Remainder") %>%
         plotly::layout(yaxis = list(title = "Remainder"))
 
       plotly::subplot(p_trend, p_seasonal, p_remainder,
-                      nrows = 3L, shareX = TRUE, titleY = TRUE) |>
+                      nrows = 3L, shareX = TRUE, titleY = TRUE) %>%
         plotly::layout(
           xaxis  = list(title = ""),
           legend = list(orientation = "h"),
           showlegend = TRUE
         )
-    }) |> bindEvent(wide(), input$contract_n)
+    }) %>% bindEvent(wide(), input$contract_n)
   })
 }

@@ -46,27 +46,27 @@ mod_correlation_ui <- function(id) {
     bslib::navset_card_pill(
       bslib::nav_panel(
         "Correlation Heatmap",
-        plotly::plotlyOutput(ns("corr_heatmap"), height = "480px")
+        plotly::plotlyOutput(ns("corr_heatmap"), height = "70%", width = "100%")
       ),
       bslib::nav_panel(
         "Rolling Correlation",
-        plotly::plotlyOutput(ns("rolling_corr"), height = "420px")
+        plotly::plotlyOutput(ns("rolling_corr"), height = "70%", width = "100%")
       ),
       bslib::nav_panel(
         "Spread",
-        plotly::plotlyOutput(ns("spread_plot"), height = "420px")
+        plotly::plotlyOutput(ns("spread_plot"), height = "70%", width = "100%")
       ),
       bslib::nav_panel(
         "Spread Z-Score",
-        plotly::plotlyOutput(ns("spread_zscore"), height = "420px")
+        plotly::plotlyOutput(ns("spread_zscore"), height = "70%", width = "100%")
       ),
       bslib::nav_panel(
         "Spread Term Structure",
-        plotly::plotlyOutput(ns("spread_ts"), height = "420px")
+        plotly::plotlyOutput(ns("spread_ts"), height = "70%", width = "100%")
       ),
       bslib::nav_panel(
         "CCF (Lead-Lag)",
-        plotly::plotlyOutput(ns("ccf_plot"), height = "420px")
+        plotly::plotlyOutput(ns("ccf_plot"), height = "70%", width = "100%")
       )
     )
   )
@@ -102,7 +102,7 @@ mod_correlation_server <- function(id, mkt_data) {
       })
       dfs <- Filter(Negate(is.null), dfs)
       if (length(dfs) == 0L) return(NULL)
-      Reduce(function(a, b) dplyr::full_join(a, b, by = "date"), dfs) |>
+      Reduce(function(a, b) dplyr::full_join(a, b, by = "date"), dfs) %>%
         dplyr::arrange(date)
     })
 
@@ -113,7 +113,7 @@ mod_correlation_server <- function(id, mkt_data) {
       date_from <- input$date_range[1]
       date_to   <- input$date_range[2]
       filter_date_range(df, date_from, date_to)
-    }) |> bindEvent(ret_wide(), input$date_range)
+    }) %>% bindEvent(ret_wide(), input$date_range)
 
     # ── Correlation Heatmap (full-period correlation matrix) ──────────────────
     output$corr_heatmap <- plotly::renderPlotly({
@@ -137,12 +137,12 @@ mod_correlation_server <- function(id, mkt_data) {
         zmin = -1, zmax = 1,
         text = round(corr, 2L),
         hovertemplate = "%{y} / %{x}: %{z:.3f}<extra></extra>"
-      ) |>
+      ) %>%
         plotly::layout(
           xaxis = list(title = ""),
           yaxis = list(title = "")
         )
-    }) |> bindEvent(ret_filtered())
+    }) %>% bindEvent(ret_filtered())
 
     # ── Rolling Pairwise Correlation (A vs B) ─────────────────────────────────
     output$rolling_corr <- plotly::renderPlotly({
@@ -172,7 +172,7 @@ mod_correlation_server <- function(id, mkt_data) {
         type = "scatter", mode = "lines",
         line = list(color = "#1f77b4", width = 1.5),
         hovertemplate = "%{x|%Y-%m-%d}: %{y:.3f}<extra></extra>"
-      ) |>
+      ) %>%
         plotly::layout(
           xaxis  = list(title = ""),
           yaxis  = list(title = glue::glue("{win}d Rolling Correlation"), range = c(-1, 1)),
@@ -185,7 +185,7 @@ mod_correlation_server <- function(id, mkt_data) {
             line = list(color = "#adb5bd", dash = "dot", width = 1)
           ))
         )
-    }) |> bindEvent(ret_filtered(), input$spread_x, input$spread_y, window())
+    }) %>% bindEvent(ret_filtered(), input$spread_x, input$spread_y, window())
 
     # ── Spread (C1 price difference, $/bbl equivalent) ────────────────────────
     spread_prices <- reactive({
@@ -213,15 +213,15 @@ mod_correlation_server <- function(id, mkt_data) {
       names(dx)[2L] <- "px"
       names(dy)[2L] <- "py"
 
-      dplyr::inner_join(dx, dy, by = "date") |>
+      dplyr::inner_join(dx, dy, by = "date") %>%
         dplyr::mutate(
           px_bbl = px * bbl_x,
           py_bbl = py * bbl_y,
           spread = px_bbl - py_bbl
-        ) |>
-        dplyr::arrange(date) |>
+        ) %>%
+        dplyr::arrange(date) %>%
         filter_date_range(input$date_range[1], input$date_range[2])
-    }) |> bindEvent(mkt_data(), input$spread_x, input$spread_y, input$date_range)
+    }) %>% bindEvent(mkt_data(), input$spread_x, input$spread_y, input$date_range)
 
     output$spread_plot <- plotly::renderPlotly({
       df <- spread_prices()
@@ -234,7 +234,7 @@ mod_correlation_server <- function(id, mkt_data) {
         type = "scatter", mode = "lines",
         line = list(color = "#1f77b4", width = 1.5),
         hovertemplate = "%{x|%Y-%m-%d}: %{y:.2f}<extra></extra>"
-      ) |>
+      ) %>%
         plotly::layout(
           xaxis  = list(title = ""),
           yaxis  = list(title = "Spread ($/bbl equivalent)"),
@@ -247,7 +247,7 @@ mod_correlation_server <- function(id, mkt_data) {
             line = list(color = "#adb5bd", dash = "dot", width = 1)
           ))
         )
-    }) |> bindEvent(spread_prices())
+    }) %>% bindEvent(spread_prices())
 
     # ── Spread Z-Score ────────────────────────────────────────────────────────
     output$spread_zscore <- plotly::renderPlotly({
@@ -269,7 +269,7 @@ mod_correlation_server <- function(id, mkt_data) {
         type = "scatter", mode = "lines",
         line = list(color = "#ff7f0e", width = 1.5),
         hovertemplate = "%{x|%Y-%m-%d}: %{y:.2f}\u03c3<extra></extra>"
-      ) |>
+      ) %>%
         plotly::layout(
           xaxis  = list(title = ""),
           yaxis  = list(title = glue::glue("{win}d Rolling Z-Score")),
@@ -289,7 +289,7 @@ mod_correlation_server <- function(id, mkt_data) {
                  line = list(color = "#1a7340", dash = "dash", width = 1))
           )
         )
-    }) |> bindEvent(spread_prices(), window())
+    }) %>% bindEvent(spread_prices(), window())
 
     # ── Spread Term Structure ─────────────────────────────────────────────────
     # Spread at each contract level (C1–C12) at the most recent available date.
@@ -333,7 +333,7 @@ mod_correlation_server <- function(id, mkt_data) {
         line   = list(color = "#1f77b4", width = 2),
         marker = list(color = "#1f77b4", size = 8),
         hovertemplate = "C%{x}: %{y:.2f}<extra></extra>"
-      ) |>
+      ) %>%
         plotly::layout(
           xaxis  = list(title = "Contract", dtick = 1),
           yaxis  = list(title = "Spread ($/bbl equivalent)"),
@@ -346,7 +346,7 @@ mod_correlation_server <- function(id, mkt_data) {
             line = list(color = "#adb5bd", dash = "dot", width = 1)
           ))
         )
-    }) |> bindEvent(mkt_data(), input$spread_x, input$spread_y)
+    }) %>% bindEvent(mkt_data(), input$spread_x, input$spread_y)
 
     # ── CCF (Lead-Lag) ────────────────────────────────────────────────────────
     # Cross-correlation function between front-month log returns for Markets A and B.
@@ -374,7 +374,7 @@ mod_correlation_server <- function(id, mkt_data) {
         type   = "bar",
         marker = list(color = bar_colors),
         hovertemplate = "Lag %{x}d: %{y:.3f}<extra></extra>"
-      ) |>
+      ) %>%
         plotly::layout(
           xaxis  = list(title = glue::glue(
             "Lag (days) \u2014 positive: {MARKETS[[mx]]$label} leads {MARKETS[[my]]$label}"
@@ -392,6 +392,6 @@ mod_correlation_server <- function(id, mkt_data) {
                  line = list(color = "#c0392b", dash = "dash", width = 1))
           )
         )
-    }) |> bindEvent(ret_filtered(), input$spread_x, input$spread_y)
+    }) %>% bindEvent(ret_filtered(), input$spread_x, input$spread_y)
   })
 }

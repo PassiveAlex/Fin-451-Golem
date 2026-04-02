@@ -71,7 +71,7 @@ build_curve_snapshot <- function(wide_df, prefix, date_val, max_c = 36L) {
   data.frame(
     contract = as.integer(sub(paste0(prefix, "_C"), "", present)),
     price    = as.numeric(row[1L, present])
-  ) |> dplyr::filter(!is.na(price))
+  ) %>% dplyr::filter(!is.na(price))
 }
 
 #' Compute daily curve slope and regime history
@@ -86,13 +86,13 @@ curve_slope_history <- function(wide_df, prefix, front = 1L, back = 12L) {
   col_b <- paste0(prefix, "_C", back)
   if (!all(c(col_f, col_b) %in% names(wide_df))) return(NULL)
 
-  wide_df |>
-    dplyr::select(date, f = dplyr::all_of(col_f), b = dplyr::all_of(col_b)) |>
-    dplyr::filter(!is.na(f), !is.na(b)) |>
+  wide_df %>%
+    dplyr::select(date, f = dplyr::all_of(col_f), b = dplyr::all_of(col_b)) %>%
+    dplyr::filter(!is.na(f), !is.na(b)) %>%
     dplyr::mutate(
       slope  = f - b,
       regime = classify_curve_shape(slope)
-    ) |>
+    ) %>%
     dplyr::select(date, slope, regime)
 }
 
@@ -101,12 +101,12 @@ curve_slope_history <- function(wide_df, prefix, front = 1L, back = 12L) {
 #' @param slope_history data.frame from curve_slope_history()
 #' @return data.frame: year (int), regime (chr), fraction (dbl)
 regime_fractions_by_year <- function(slope_history) {
-  slope_history |>
-    dplyr::mutate(year = lubridate::year(date)) |>
-    dplyr::count(year, regime) |>
-    dplyr::group_by(year) |>
-    dplyr::mutate(fraction = n / sum(n)) |>
-    dplyr::ungroup() |>
+  slope_history %>%
+    dplyr::mutate(year = lubridate::year(date)) %>%
+    dplyr::count(year, regime) %>%
+    dplyr::group_by(year) %>%
+    dplyr::mutate(fraction = n / sum(n)) %>%
+    dplyr::ungroup() %>%
     dplyr::select(year, regime, fraction)
 }
 
@@ -123,11 +123,11 @@ compute_roll_yield <- function(wide_df, prefix) {
   c2 <- paste0(prefix, "_C2")
   if (!all(c(c1, c2) %in% names(wide_df))) return(NULL)
 
-  wide_df |>
+  wide_df %>%
     dplyr::select(date,
                   c1 = dplyr::all_of(c1),
-                  c2 = dplyr::all_of(c2)) |>
-    dplyr::filter(!is.na(c1), !is.na(c2), c1 > 0) |>
+                  c2 = dplyr::all_of(c2)) %>%
+    dplyr::filter(!is.na(c1), !is.na(c2), c1 > 0) %>%
     dplyr::mutate(roll_yield = (c1 - c2) / c1 * 12)
 }
 

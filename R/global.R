@@ -21,12 +21,12 @@ library(shinyjs)
 # bbl_factor:  multiplier to convert native unit to $/bbl equivalent
 #              (42 gal/bbl for HO and RBOB; 1 for crude; MMBtu/bbl ~5.8 for NG)
 MARKETS <- list(
-  CL   = list(label = "WTI Cushing",    rtl_prefix = "CL",  unit = "$/bbl",   color = "#1f77b4", bbl_factor = 1,    max_contracts = 36L, enabled = TRUE),
-  BRN  = list(label = "Brent Crude",    rtl_prefix = "BRN", unit = "$/bbl",   color = "#ff7f0e", bbl_factor = 1,    max_contracts = 36L, enabled = TRUE),
-  HTT  = list(label = "WTI Houston",    rtl_prefix = "HTT", unit = "$/bbl",   color = "#2ca02c", bbl_factor = 1,    max_contracts = 12L, enabled = TRUE),
-  HO   = list(label = "Heating Oil",    rtl_prefix = "HO",  unit = "$/gal",   color = "#d62728", bbl_factor = 42,   max_contracts = 18L, enabled = TRUE),
-  RBOB = list(label = "RBOB Gasoline",  rtl_prefix = "RB",  unit = "$/gal",   color = "#9467bd", bbl_factor = 42,   max_contracts = 18L, enabled = TRUE),
-  NG   = list(label = "Natural Gas",    rtl_prefix = "NG",  unit = "$/mmBtu", color = "#8c564b", bbl_factor = 5.8,  max_contracts = 36L, enabled = TRUE)
+  CL   = list(label = "WTI Cushing",    rtl_prefix = "CL",  unit = "$/bbl",   color = "#1f77b4", bbl_factor = 1,    max_contracts = 36L, enabled = TRUE, base_prefix = NULL),
+  BRN  = list(label = "Brent Crude",    rtl_prefix = "BRN", unit = "$/bbl",   color = "#ff7f0e", bbl_factor = 1,    max_contracts = 36L, enabled = TRUE, base_prefix = NULL),
+  HTT  = list(label = "WTI Houston",    rtl_prefix = "HTT", unit = "$/bbl",   color = "#2ca02c", bbl_factor = 1,    max_contracts = 12L, enabled = TRUE, base_prefix = "CL"),
+  HO   = list(label = "Heating Oil",    rtl_prefix = "HO",  unit = "$/gal",   color = "#d62728", bbl_factor = 42,   max_contracts = 18L, enabled = TRUE, base_prefix = NULL),
+  RBOB = list(label = "RBOB Gasoline",  rtl_prefix = "RB",  unit = "$/gal",   color = "#9467bd", bbl_factor = 42,   max_contracts = 18L, enabled = TRUE, base_prefix = NULL),
+  NG   = list(label = "Natural Gas",    rtl_prefix = "NG",  unit = "$/mmBtu", color = "#8c564b", bbl_factor = 5.8,  max_contracts = 36L, enabled = TRUE, base_prefix = NULL)
 )
 
 ENABLED_MARKETS <- names(Filter(function(m) m$enabled, MARKETS))
