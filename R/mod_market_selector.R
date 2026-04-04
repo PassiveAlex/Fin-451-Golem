@@ -8,14 +8,16 @@ mod_market_selector_ui <- function(id,
   ns <- NS(id)
   div(
     class = "sidebar-inputs",
-    selectInput(
+    selectizeInput(
       ns("market"),
-      label   = "Market",
-      choices = stats::setNames(
+      label    = "Market",
+      choices  = stats::setNames(
         ENABLED_MARKETS,
         sapply(ENABLED_MARKETS, function(m) MARKETS[[m]]$label)
       ),
-      selected = ENABLED_MARKETS[1L]
+      selected = ENABLED_MARKETS[1L],
+      multiple = TRUE,
+      options  = list(plugins = list("remove_button"))
     ),
     if (show_contracts)
       sliderInput(
@@ -48,10 +50,11 @@ mod_market_selector_ui <- function(id,
 mod_market_selector_server <- function(id) {
   moduleServer(id, function(input, output, session) {
 
-    # Update contract slider max when market changes (only relevant when shown)
+    # Update contract slider max to min across all selected markets
     observeEvent(input$market, {
-      mkt   <- input$market
-      max_c <- MARKETS[[mkt]]$max_contracts
+      mkts <- input$market
+      if (length(mkts) == 0L) return()
+      max_c <- min(sapply(mkts, function(m) MARKETS[[m]]$max_contracts))
       cur   <- input$contract_range
       if (!is.null(cur)) {
         updateSliderInput(

@@ -1,4 +1,8 @@
+# Load secrets from .env if present (local development)
+if (file.exists(".env")) readRenviron(".env")
+
 library(shiny)
+library(arrow)
 library(bslib)
 library(plotly)
 library(dplyr)
@@ -30,6 +34,53 @@ MARKETS <- list(
 )
 
 ENABLED_MARKETS <- names(Filter(function(m) m$enabled, MARKETS))
+
+# EIA region choices per commodity (used in both the forward curve overlay and the EIA tab)
+EIA_AREA_CHOICES <- list(
+  crude = c(
+    "U.S."                = "US",
+    "PADD 1 (East Coast)" = "PADD1",
+    "PADD 2 (Midwest)"    = "PADD2",
+    "PADD 3 (Gulf Coast)" = "PADD3",
+    "PADD 4 (Rockies)"    = "PADD4",
+    "PADD 5 (West Coast)" = "PADD5",
+    "Cushing, OK"         = "Cushing"
+  ),
+  distillate = c(
+    "U.S."                = "US",
+    "PADD 1 (East Coast)" = "PADD1",
+    "PADD 2 (Midwest)"    = "PADD2",
+    "PADD 3 (Gulf Coast)" = "PADD3",
+    "PADD 4 (Rockies)"    = "PADD4",
+    "PADD 5 (West Coast)" = "PADD5"
+  ),
+  gasoline = c(
+    "U.S."                = "US",
+    "PADD 1 (East Coast)" = "PADD1",
+    "PADD 2 (Midwest)"    = "PADD2",
+    "PADD 3 (Gulf Coast)" = "PADD3",
+    "PADD 4 (Rockies)"    = "PADD4",
+    "PADD 5 (West Coast)" = "PADD5"
+  ),
+  natural_gas = c(
+    "U.S. Lower 48"     = "US",
+    "East Region"       = "East",
+    "Midwest Region"    = "Midwest",
+    "Mountain Region"   = "Mountain",
+    "Pacific Region"    = "Pacific",
+    "South Central"     = "SouthCentral"
+  )
+)
+
+# Mapping from futures market key to EIA commodity label used in eia_fundamentals.feather
+MARKET_TO_EIA <- c(
+  CL   = "crude",
+  BRN  = "crude",
+  HTT  = "crude",
+  HO   = "distillate",
+  RBOB = "gasoline",
+  NG   = "natural_gas"
+)
 
 # Curve shape classification thresholds ($/bbl equivalent)
 CURVE_THRESHOLDS <- c(steep_back = 3, mild_back = 0.5, mild_cont = -0.5, steep_cont = -3)

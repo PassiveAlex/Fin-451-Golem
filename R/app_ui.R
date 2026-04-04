@@ -66,6 +66,13 @@ app_ui <- function() {
       mod_correlation_ui("corr")
     ),
 
+    # ── EIA Fundamentals ─────────────────────────────────────────────────────
+    bslib::nav_panel(
+      title = shiny::span(bsicons::bs_icon("database"), " EIA Fundamentals"),
+      value = "eia_fundamentals",
+      mod_eia_ui("eia")
+    ),
+
     bslib::nav_spacer()
   )
 }

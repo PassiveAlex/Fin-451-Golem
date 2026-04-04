@@ -39,6 +39,9 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
+# App secrets — never commit
+.env
+
 # pkgdown site
 docs/
 

@@ -7,6 +7,9 @@
 #
 #   FRED DGS tickers  →  fetch_fred_zero_curve()  →  zero_curve_panel (reactiveVal)
 #                                                      passed to mod_yield_curve_server
+#
+#   inst/extdata/eia_fundamentals.feather  →  load_eia_data()  →  eia_data (reactiveVal)
+#                                              passed to mod_forward_curve_server + mod_eia_server
 
 app_server <- function(input, output, session) {
 
@@ -67,10 +70,20 @@ app_server <- function(input, output, session) {
     })
   }) %>% shiny::bindEvent(TRUE, once = TRUE)   # run exactly once at startup
 
-  # ── 3. Wire feature modules ─────────────────────────────────────────────────
+  # ── 3. Load EIA fundamentals from feather cache ────────────────────────────
+  # Loaded once at startup from the nightly-refreshed file. Falls back
+  # gracefully (data = NULL, is_stale = TRUE) if the file is missing.
+  eia_data <- shiny::reactiveVal(
+    tryCatch(load_eia_data(), error = function(e) {
+      warning("EIA data load failed: ", conditionMessage(e))
+      list(data = NULL, last_updated = NULL, is_stale = TRUE)
+    })
+  )
+
+  # ── 4. Wire feature modules ─────────────────────────────────────────────────
   mod_market_process_server("process")
 
-  mod_forward_curve_server("fwd",    mkt_data = mkt_data)
+  mod_forward_curve_server("fwd",    mkt_data = mkt_data, eia_data = eia_data)
   mod_volatility_server("vol",       mkt_data = mkt_data)
   mod_seasonality_server("season",   mkt_data = mkt_data)
   mod_hedge_ratios_server("hedge",   mkt_data = mkt_data)
@@ -78,4 +91,5 @@ app_server <- function(input, output, session) {
   mod_yield_curve_server("yc",       zero_curve_panel = zero_curve_panel)
 
   mod_correlation_server("corr",     mkt_data = mkt_data)
+  mod_eia_server("eia",              eia_data = eia_data)
 }
