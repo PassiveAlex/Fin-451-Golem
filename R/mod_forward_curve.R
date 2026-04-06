@@ -118,7 +118,8 @@ mod_forward_curve_server <- function(id, mkt_data, eia_data = NULL) {
         ry <- if (!is.null(ry_df) && nrow(ry_df) > 0L) tail(ry_df$roll_yield, 1L) else NA_real_
 
         list(label = MARKETS[[m]]$label, unit = u, snap_date = sd,
-             slope = sl, regime = rg, roll_yield = ry)
+             slope = sl, regime = rg, roll_yield = ry,
+             bbl_factor = MARKETS[[m]]$bbl_factor)
       })
     })
 
@@ -136,8 +137,9 @@ mod_forward_curve_server <- function(id, mkt_data, eia_data = NULL) {
             showcase = bsicons::bs_icon("bar-chart-steps")
           ),
           bslib::value_box(
-            title    = paste0(mm$label, " C1\u2013C", input$back_c, " Slope (", mm$unit, ")"),
-            value    = if (is.na(mm$slope)) "N/A" else sprintf("%+.2f %s", mm$slope, mm$unit),
+            title    = paste0(mm$label, " C1\u2013C", input$back_c, " Slope ($/bbl)"),
+            value    = if (is.na(mm$slope)) "N/A"
+                       else sprintf("%+.2f $/bbl", mm$slope * mm$bbl_factor),
             showcase = bsicons::bs_icon("arrows-expand")
           ),
           bslib::value_box(
@@ -159,29 +161,32 @@ mod_forward_curve_server <- function(id, mkt_data, eia_data = NULL) {
 
       p <- plotly::plot_ly()
       for (m in names(metrics)) {
-        mm  <- metrics[[m]]
-        pfx <- MARKETS[[m]]$rtl_prefix
-        col <- MARKETS[[m]]$color
+        mm    <- metrics[[m]]
+        pfx   <- MARKETS[[m]]$rtl_prefix
+        col   <- MARKETS[[m]]$color
+        bbl_f <- MARKETS[[m]]$bbl_factor
         if (is.na(mm$snap_date)) next
 
         snap <- build_curve_snapshot(w_list[[m]], pfx, mm$snap_date)
         if (is.null(snap)) next
+        snap <- dplyr::mutate(snap, price = price * bbl_f)
 
         p <- plotly::add_lines(p,
           data          = snap, x = ~contract, y = ~price,
           name          = paste0(mm$label, " (", format(mm$snap_date, "%b %d, %Y"), ")"),
           line          = list(color = col, width = 2.5),
-          hovertemplate = paste0(mm$label, " C%{x}: %{y:.2f}<extra></extra>")
+          hovertemplate = paste0(mm$label, " C%{x}: $%{y:.2f}/bbl<extra></extra>")
         )
 
         if (isTruthy(comp_d)) {
           comp_snap <- build_curve_snapshot(w_list[[m]], pfx, comp_d)
           if (!is.null(comp_snap)) {
+            comp_snap <- dplyr::mutate(comp_snap, price = price * bbl_f)
             p <- plotly::add_lines(p,
               data          = comp_snap, x = ~contract, y = ~price,
               name          = paste0(mm$label, " (", format(comp_d, "%b %d, %Y"), ")"),
               line          = list(color = col, width = 2, dash = "dash"),
-              hovertemplate = paste0(mm$label, " C%{x}: %{y:.2f}<extra></extra>")
+              hovertemplate = paste0(mm$label, " C%{x}: $%{y:.2f}/bbl<extra></extra>")
             )
           }
         }
@@ -189,7 +194,7 @@ mod_forward_curve_server <- function(id, mkt_data, eia_data = NULL) {
 
       p %>% plotly::layout(
         xaxis     = list(title = "Contract", dtick = 3),
-        yaxis     = list(title = "Price"),
+        yaxis     = list(title = "Price ($/bbl)"),
         legend    = list(orientation = "h"),
         hovermode = "x unified"
       )
@@ -257,16 +262,18 @@ mod_forward_curve_server <- function(id, mkt_data, eia_data = NULL) {
 
       p <- plotly::plot_ly()
       for (m in mkts) {
-        w   <- w_list[[m]]
-        pfx <- MARKETS[[m]]$rtl_prefix
-        lbl <- MARKETS[[m]]$label
+        w     <- w_list[[m]]
+        pfx   <- MARKETS[[m]]$rtl_prefix
+        lbl   <- MARKETS[[m]]$label
+        bbl_f <- MARKETS[[m]]$bbl_factor
         if (nrow(w) <= 50L) next
 
         c1_col <- paste0(pfx, "_C1")
         if (!c1_col %in% names(w)) next
 
         c1_ts <- dplyr::select(w, date, c1 = dplyr::all_of(c1_col)) %>%
-          dplyr::filter(!is.na(c1))
+          dplyr::filter(!is.na(c1)) %>%
+          dplyr::mutate(c1 = c1 * bbl_f)
         if (nrow(c1_ts) <= 2L) next
 
         step       <- max(63L, nrow(c1_ts) %/% 30L)
@@ -279,6 +286,7 @@ mod_forward_curve_server <- function(id, mkt_data, eia_data = NULL) {
           snap <- build_curve_snapshot(w, pfx, d, max_c = 12L)
           if (is.null(snap) || nrow(snap) == 0L) return(NULL)
           dplyr::mutate(snap,
+            price         = price * bbl_f,
             snap_date     = d,
             delivery_date = d + lubridate::days(as.integer(round((contract - 1L) * 30.44)))
           )
@@ -336,7 +344,7 @@ mod_forward_curve_server <- function(id, mkt_data, eia_data = NULL) {
 
       p %>% plotly::layout(
         xaxis     = list(title = "Date / Approximate Delivery Month"),
-        yaxis     = list(title = "Price"),
+        yaxis     = list(title = "Price ($/bbl)"),
         legend    = list(orientation = "h"),
         hovermode = "x unified"
       )
@@ -351,11 +359,12 @@ mod_forward_curve_server <- function(id, mkt_data, eia_data = NULL) {
       eia_commodity <- MARKET_TO_EIA[mkts[1L]]
 
       choices <- switch(eia_commodity,
-        crude       = c("None"="none","Stocks"="stocks","Production"="production",
-                        "Imports"="imports","Exports"="exports"),
-        distillate  = c("None"="none","Stocks"="stocks"),
-        gasoline    = c("None"="none","Stocks"="stocks"),
-        natural_gas = c("None"="none","Storage"="storage"),
+        crude       = c("None"="none","Consumption"="consumption","Stocks"="stocks",
+                        "Production"="production","Imports"="imports","Exports"="exports"),
+        distillate  = c("None"="none","Consumption"="consumption","Stocks"="stocks"),
+        gasoline    = c("None"="none","Consumption"="consumption","Stocks"="stocks"),
+        natural_gas = c("None"="none","Consumption"="consumption","Storage"="storage",
+                        "Production"="production"),
         c("None"="none")
       )
       cur <- input$eia_series
@@ -428,12 +437,14 @@ mod_forward_curve_server <- function(id, mkt_data, eia_data = NULL) {
 
       req(nrow(eia_df) > 0L)
 
-      # Price: C1 from already-filtered wide data
+      # Price: C1 from already-filtered wide data, scaled to $/bbl
+      bbl_f  <- MARKETS[[m]]$bbl_factor
       w      <- wides()[[m]]
       c1_col <- paste0(MARKETS[[m]]$rtl_prefix, "_C1")
       req(c1_col %in% names(w))
       price_ts <- dplyr::select(w, date, price = dplyr::all_of(c1_col)) %>%
-        dplyr::filter(!is.na(price))
+        dplyr::filter(!is.na(price)) %>%
+        dplyr::mutate(price = price * bbl_f)
 
       units     <- eia_df$units[1L]
       area_lbl  <- eia_df$area_label[1L]
@@ -449,15 +460,15 @@ mod_forward_curve_server <- function(id, mkt_data, eia_data = NULL) {
         ) %>%
         plotly::add_lines(
           data          = price_ts, x = ~date, y = ~price,
-          name          = paste0(lbl, " C1 (", MARKETS[[m]]$unit, ")"),
+          name          = paste0(lbl, " C1 ($/bbl)"),
           yaxis         = "y2",
           line          = list(color = col, width = 1.5),
-          hovertemplate = paste0(lbl, " C1 %{x|%Y-%m-%d}: %{y:.2f}<extra></extra>")
+          hovertemplate = paste0(lbl, " C1 %{x|%Y-%m-%d}: $%{y:.2f}/bbl<extra></extra>")
         ) %>%
         plotly::layout(
           xaxis     = list(title = ""),
           yaxis     = list(title = paste0(units, " \u2014 ", area_lbl), side = "left"),
-          yaxis2    = list(title = paste0(MARKETS[[m]]$unit, " \u2014 ", lbl, " C1"),
+          yaxis2    = list(title = paste0("$/bbl \u2014 ", lbl, " C1"),
                            overlaying = "y", side = "right"),
           legend    = list(orientation = "h"),
           hovermode = "x unified"

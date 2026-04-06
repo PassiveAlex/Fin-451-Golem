@@ -51,15 +51,10 @@ EIA_AREA_CHOICES <- list(
       "PADD 5 (West Coast)" = "PADD5",
       "Cushing, OK"         = "Cushing"
     ),
-    production = c(
-      "U.S."                = "US"
-    ),
-    imports = c(
-      "U.S."                = "US"
-    ),
-    exports = c(
-      "U.S."                = "US"
-    )
+    production  = c("U.S." = "US"),
+    imports     = c("U.S." = "US"),
+    exports     = c("U.S." = "US"),
+    consumption = c("U.S." = "US")
   ),
   distillate = list(
     stocks = c(
@@ -69,7 +64,8 @@ EIA_AREA_CHOICES <- list(
       "PADD 3 (Gulf Coast)" = "PADD3",
       "PADD 4 (Rockies)"    = "PADD4",
       "PADD 5 (West Coast)" = "PADD5"
-    )
+    ),
+    consumption = c("U.S." = "US")
   ),
   gasoline = list(
     stocks = c(
@@ -79,22 +75,22 @@ EIA_AREA_CHOICES <- list(
       "PADD 3 (Gulf Coast)" = "PADD3",
       "PADD 4 (Rockies)"    = "PADD4",
       "PADD 5 (West Coast)" = "PADD5"
-    )
+    ),
+    consumption = c("U.S." = "US")
   ),
   natural_gas = list(
     storage = c(
-      "U.S. Lower 48"   = "US",
-      "East Region"     = "East",
-      "Midwest Region"  = "Midwest",
-      "Mountain Region" = "Mountain",
-      "Pacific Region"  = "Pacific",
-      "South Central"   = "SouthCentral"
+      "U.S. Lower 48"    = "US",
+      "East Region"      = "East",
+      "Midwest Region"   = "Midwest",
+      "Mountain Region"  = "Mountain",
+      "Pacific Region"   = "Pacific",
+      "South Central"    = "SouthCentral"
     ),
-    production = c(
-      "U.S."            = "US"
-    ),
+    production  = c("U.S." = "US"),
     consumption = c(
-      "U.S. Industrial" = "Industrial",
+      "U.S. Total"       = "US",
+      "U.S. Industrial"  = "Industrial",
       "U.S. Residential" = "Residential"
     )
   )
@@ -103,12 +99,13 @@ EIA_AREA_CHOICES <- list(
 # Available series types per commodity (drives the Series Type selector in mod_eia).
 # Only types with at least one confirmed working ticker are listed.
 EIA_SERIES_TYPE_CHOICES <- list(
-  crude       = c("Stocks"      = "stocks",  "Production" = "production",
-                  "Imports"     = "imports", "Exports"    = "exports"),
-  distillate  = c("Stocks"      = "stocks"),
-  gasoline    = c("Stocks"      = "stocks"),
-  natural_gas = c("Storage"     = "storage", "Production" = "production",
-                  "Consumption" = "consumption")
+  crude       = c("Consumption" = "consumption", "Stocks"     = "stocks",
+                  "Production"  = "production",  "Imports"    = "imports",
+                  "Exports"     = "exports"),
+  distillate  = c("Consumption" = "consumption", "Stocks"     = "stocks"),
+  gasoline    = c("Consumption" = "consumption", "Stocks"     = "stocks"),
+  natural_gas = c("Consumption" = "consumption", "Storage"    = "storage",
+                  "Production"  = "production")
 )
 
 # Mapping from futures market key to EIA commodity label used in eia_fundamentals.feather

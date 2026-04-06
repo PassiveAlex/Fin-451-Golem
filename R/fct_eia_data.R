@@ -67,8 +67,18 @@ EIA_TICKERS <- tibble::tribble(
   "NG.NW2_EPG0_SWO_R35_BCF.W",          "ng_storage_SouthCent",     "natural_gas", "storage",     "SouthCentral", "South Central Region",             "Bcf",    "weekly",
   # ── Natural gas production / consumption — monthly ────────────────────────
   "NG.N9050US2.M",                       "ng_prod_US_M",             "natural_gas", "production",  "US",           "U.S.",                             "MMcf",   "monthly",
+  "NG.N9070US2.M",                       "ng_cons_total_M",          "natural_gas", "consumption", "US",           "U.S. Total",                       "MMcf",   "monthly",
   "NG.N9102US2.M",                       "ng_cons_industrial_M",     "natural_gas", "consumption", "Industrial",   "U.S. Industrial",                  "MMcf",   "monthly",
-  "NG.N9103US2.M",                       "ng_cons_residential_M",    "natural_gas", "consumption", "Residential",  "U.S. Residential",                 "MMcf",   "monthly"
+  "NG.N9103US2.M",                       "ng_cons_residential_M",    "natural_gas", "consumption", "Residential",  "U.S. Residential",                 "MMcf",   "monthly",
+
+  # ── Crude oil refinery inputs — weekly (demand proxy for crude) ───────────
+  "PET.WCRRIUS2.W",                      "crude_consumption_US",     "crude",       "consumption", "US",           "U.S.",                             "Mbbl/d", "weekly",
+
+  # ── Distillate product supplied — weekly (demand proxy for HO/diesel) ─────
+  "PET.WDIRPUS2.W",                      "dist_consumption_US",      "distillate",  "consumption", "US",           "U.S.",                             "Mbbl/d", "weekly",
+
+  # ── Finished gasoline product supplied — weekly (demand proxy for RBOB) ───
+  "PET.WGFUPUS2.W",                      "gas_consumption_US",       "gasoline",    "consumption", "US",           "U.S.",                             "Mbbl/d", "weekly"
 )
 
 # ── Fetch all series ──────────────────────────────────────────────────────────
