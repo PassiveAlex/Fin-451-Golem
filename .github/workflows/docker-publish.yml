@@ -26,10 +26,6 @@ jobs:
           # use ref: main to ensure we get the latest committed feather file.
           ref: main
 
-      # QEMU lets the amd64 runner build arm64 images via emulation.
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -43,9 +39,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          # Build for both Intel/AMD and Apple Silicon / ARM servers.
-          # No --platform hardcoding in the Dockerfile itself.
-          platforms: linux/amd64,linux/arm64
+          # amd64 only — arm64 via QEMU emulation takes 1+ hour for R packages.
+          # M1/M2 Mac users can run this image transparently via Docker Rosetta 2.
+          platforms: linux/amd64
           push: true
           tags: |
             alexhirtle/fin452golem:latest
